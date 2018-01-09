@@ -5,20 +5,35 @@
 package templates
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
-// bindataRead reads the given file from disk. It returns an error on failure.
-func bindataRead(path, name string) ([]byte, error) {
-	buf, err := ioutil.ReadFile(path)
+func bindataRead(data []byte, name string) ([]byte, error) {
+	gz, err := gzip.NewReader(bytes.NewBuffer(data))
 	if err != nil {
-		err = fmt.Errorf("Error reading asset %s at %s: %v", name, path, err)
+		return nil, fmt.Errorf("Read %q: %v", name, err)
 	}
-	return buf, err
+
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, gz)
+	clErr := gz.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("Read %q: %v", name, err)
+	}
+	if clErr != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
 
 type asset struct {
@@ -26,22 +41,50 @@ type asset struct {
 	info  os.FileInfo
 }
 
-// mdSimpleMdTmpl reads file data from disk. It returns an error on failure.
+type bindataFileInfo struct {
+	name    string
+	size    int64
+	mode    os.FileMode
+	modTime time.Time
+}
+
+func (fi bindataFileInfo) Name() string {
+	return fi.name
+}
+func (fi bindataFileInfo) Size() int64 {
+	return fi.size
+}
+func (fi bindataFileInfo) Mode() os.FileMode {
+	return fi.mode
+}
+func (fi bindataFileInfo) ModTime() time.Time {
+	return fi.modTime
+}
+func (fi bindataFileInfo) IsDir() bool {
+	return false
+}
+func (fi bindataFileInfo) Sys() interface{} {
+	return nil
+}
+
+var _mdSimpleMdTmpl = []byte("\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\xff\x9c\x93\x4f\x6b\xdc\x30\x10\xc5\xef\xfa\x14\x83\xec\x43\x7b\xb0\x73\x0f\x9b\x85\xd0\x12\xc8\xa1\x6d\xfa\xe7\xd6\x16\xa2\xda\xe3\xad\x41\x92\x5d\x8d\x5c\x58\xc6\xfa\xee\x45\xf2\x9f\x5d\xdc\x5d\x5a\x72\x30\xc8\x4f\xbc\xd1\x7b\x3f\xcb\xcc\x35\x36\xad\x45\x90\x4d\x8b\xba\x96\x21\x88\x91\xb9\x7c\xaf\x0c\x86\x10\x57\x5f\x8e\x3d\x9e\x5e\x1d\xf6\x5a\x55\x08\xe5\x9b\xce\x18\xb4\x9e\x40\x7e\xb3\x12\xe4\xee\xe6\x87\xdb\xcb\x10\x46\xc1\x5c\x00\xda\x3a\x04\x21\x4e\xb3\x0d\x12\xa9\x03\x4a\x28\x42\x10\x3b\x05\x56\x19\xbc\x93\xcc\xe5\xc3\xa0\xf5\xf1\xe3\xa0\x74\xdb\xb4\x58\x4f\xc7\xc8\xfd\xee\x46\xed\xd7\x10\x62\x84\x87\x18\x0d\x60\x84\x18\x06\x46\x78\x8b\x54\xb9\xb6\xf7\x6d\x67\x61\x14\x23\x14\x71\xaf\x98\x9e\x14\xc0\x29\x7b\x40\xc8\x1b\xb8\xbd\x83\x32\xb9\x29\x04\x66\x8f\xa6\xd7\xca\xaf\x65\x21\x6f\xa2\x3c\xc5\xbd\x12\xdc\xff\xec\xb6\x54\xbe\x32\x97\x8f\xb6\x1f\xfc\x2c\x7c\x7f\x95\xad\xca\xa5\x42\xaf\x93\xe3\xc3\xe0\xb7\x96\x59\xba\xec\x79\x31\x6c\x42\xf7\xbb\xad\x30\x85\x86\x77\xa9\x40\xe4\xf3\x09\x7f\x0d\x48\x3e\xad\xa8\xef\x2c\xfd\x8b\xe4\x96\xa6\x49\x34\xa7\x81\x1b\x9c\x33\x26\xc8\xcd\x45\x9e\x19\xdc\x3f\x3d\x82\xc3\x06\x1d\xda\x0a\x6f\xe1\x99\xb9\x7c\x72\x9d\xef\xa6\xb2\xcf\x31\xfe\xe6\x9b\x69\xa4\xa9\xd6\xac\x53\xd4\xf3\xa6\xfc\x3c\xb5\x4b\x9b\x59\x06\xcc\x39\x2d\x17\x45\x9c\x90\xe5\x74\x0d\x5a\x74\x65\x33\x16\x12\xe7\x25\x16\x6e\x90\x53\x8a\xbf\x82\x5d\x5a\x24\x5f\xba\xc8\xf4\x1f\x81\xcd\x1c\xf8\x5e\xeb\xc5\x15\x42\x1c\x12\x43\x9f\xa3\x9b\x7f\x8d\xc8\xee\xef\x53\xff\x04\x00\x00\xff\xff\x8e\xd4\x95\xc6\xa0\x03\x00\x00")
+
+func mdSimpleMdTmplBytes() ([]byte, error) {
+	return bindataRead(
+		_mdSimpleMdTmpl,
+		"md/simple.md.tmpl",
+	)
+}
+
 func mdSimpleMdTmpl() (*asset, error) {
-	path := "/Users/glerchundi/.go/src/github.com/glerchundi/protoc-gen-template/pkg/templates/md/simple.md.tmpl"
-	name := "md/simple.md.tmpl"
-	bytes, err := bindataRead(path, name)
+	bytes, err := mdSimpleMdTmplBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	fi, err := os.Stat(path)
-	if err != nil {
-		err = fmt.Errorf("Error reading asset info %s at %s: %v", name, path, err)
-	}
-
-	a := &asset{bytes: bytes, info: fi}
-	return a, err
+	info := bindataFileInfo{name: "md/simple.md.tmpl", size: 928, mode: os.FileMode(420), modTime: time.Unix(1515511347, 0)}
+	a := &asset{bytes: bytes, info: info}
+	return a, nil
 }
 
 // Asset loads and returns the asset for the given name.
