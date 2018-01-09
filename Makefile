@@ -44,10 +44,9 @@ build:
 	done
 
 .PHONY: test
+test:
 	@echo "Running unit tests..."
-	mkdir -p .reports
-	2>&1 go test -cover -v $(shell echo $(PKGS) | tr " " "\n" | grep -v -E '$(integration_test_expr)') | tee .reports/report-unittests.out
-	cat .reports/report-unittests.out | go-junit-report -set-exit-code > .reports/report-unittests.xml
+	go test -cover -v $(shell echo $(PKGS) | tr " " "\n")
 
 .PHONY: release
 release:
@@ -99,6 +98,11 @@ errcheck:
 	@echo "Running errcheck..."
 	@errcheck $(PKGS)
 
+.PHONY: generate
+generate:
+	@echo "Running go generate..."
+	go generate $(PKGS)
+
 .PHONY: revendor
 revendor:
 	@echo "Running revendor..."
@@ -117,6 +121,7 @@ setup-env:
 
 .PHONY: setup-dev
 setup-dev:
+	go get -u github.com/kevinburke/go-bindata/...
 	@if brew ls --versions "dep" >/dev/null; then \
 		HOMEBREW_NO_AUTO_UPDATE=1 brew upgrade "dep"; \
 	else \

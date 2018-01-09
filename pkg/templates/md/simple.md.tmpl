@@ -1,0 +1,46 @@
+{{define "field"}}
+|{{.Name}}|{{.Type.Name}}|{{replace .Comments "\n" "</br>"}}|
+{{- end}}
+
+{{define "message" -}}
+<a name="{{.FullyQualifiedName}}"></a>{{.Name}}
+| Field  | Type | Description |
+| -  | - | - |
+{{- range $f := .Fields}}{{template "field" $f}}{{end}}
+{{- end}}
+
+{{define "method"}}
+|{{.Name}}|[{{.Input.Name}}](#{{.Input.FullyQualifiedName}})|[{{.Output.Name}}](#{{.Output.FullyQualifiedName}})|{{replace .Comments "\n" "</br>"}}|
+{{- end}}
+
+{{define "service"}}
+| Method  | Request | Response | Description |
+| -  | - | - | - |
+{{- range $m := .Methods}}{{template "method" $m}}{{end}}
+{{- end}}
+
+# API reference: `{{.ProtoName}}`
+
+{{range $f := .Files}}
+
+{{range $s := $f.Services}}
+
+## {{$s.Name}}
+
+{{replace $s.Comments "\n" "</br>"}}
+
+### Methods
+{{template "service" $s}}
+{{end}}
+
+{{end}}
+
+### Messages
+
+{{range $f := .Files}}
+
+{{range $m := $f.AllMessages}}
+#### {{template "message" $m}}
+{{end}}
+
+{{end}}
